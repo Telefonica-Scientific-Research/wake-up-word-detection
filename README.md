@@ -101,6 +101,57 @@ python src/test.py --arc sgru --partition_path partitions/ --version 1 \
     --test_filename test.tsv --specific_group <column_name>
 ```
 
+## Citation
+
+This code is the basis of the following works. If you use it, please cite the relevant ones.
+The speech enhancement models of the IberSPEECH 2021 and TASE papers are not included in
+this repository.
+
+```bibtex
+@inproceedings{lopez2026befairme,
+  author    = {L{\'o}pez, Fernando and Delgado-Santos, Paula and G{\'o}mez, Pablo and Solans, David and Luque, Jordi},
+  title     = {``{OK} {A}ura, Be Fair with Me'': Demographics-Agnostic Training for Bias Mitigation in Wake-up Word Detection},
+  booktitle = {Proceedings of the Workshop on Speech Language Models in Low-Resource Settings: Performance, Evaluation, and Bias Analysis (SPEAKABLE) @ LREC 2026},
+  pages     = {47--58},
+  year      = {2026},
+  month     = may,
+  address   = {Palma, Mallorca, Spain},
+  publisher = {ELRA Language Resources Association},
+  isbn      = {978-2-493814-83-8}
+}
+
+@misc{lopez2023robust,
+  author        = {L{\'o}pez, Fernando and Luque, Jordi and Segura, Carlos and G{\'o}mez, Pablo},
+  title         = {Robust Wake-Up Word Detection by Two-stage Multi-resolution Ensembles},
+  year          = {2023},
+  eprint        = {2310.11379},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.SD},
+  url           = {https://arxiv.org/abs/2310.11379},
+  note          = {Accepted in IberSPEECH 2026}
+}
+
+@article{cambara2022tase,
+  author  = {C{\'a}mbara, Guillermo and L{\'o}pez, Fernando and Bonet, David and G{\'o}mez, Pablo and Segura, Carlos and Farr{\'u}s, Mireia and Luque, Jordi},
+  title   = {{TASE}: Task-Aware Speech Enhancement for Wake-Up Word Detection in Voice Assistants},
+  journal = {Applied Sciences},
+  volume  = {12},
+  number  = {4},
+  pages   = {1974},
+  year    = {2022},
+  doi     = {10.3390/app12041974}
+}
+
+@inproceedings{bonet2021speech,
+  author    = {Bonet, David and C{\'a}mbara, Guillermo and L{\'o}pez, Fernando and G{\'o}mez, Pablo and Segura, Carlos and Luque, Jordi and Farr{\'u}s, Mireia},
+  title     = {Speech Enhancement for Wake-Up-Word Detection in Voice Assistants},
+  booktitle = {Proc. IberSPEECH 2021},
+  pages     = {41--45},
+  year      = {2021},
+  doi       = {10.21437/IberSPEECH.2021-9}
+}
+```
+
 ## License
 
 © 2026 Telefónica Innovación Digital S.L.
