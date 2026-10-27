@@ -72,7 +72,7 @@ def parse_arguments():
     #############################
 
     # The following parameters are used to augment in the time-frequency domain
-    # Specificaly: FrequencyMasking, TimeMasking, TimeStretching, RandAugment, FilterAugment
+    # Specificaly: FrequencyMasking, TimeMasking, TimeStretching, RandAugment, FilterAugment, SpecMix
     parser.add_argument('--augment_nfft', type=int, default=250, help='number of fft components')
     parser.add_argument('--augment_hop_len', type=int, default=7, help='number of audio frames between STFT columns (hop length)')
 
@@ -118,6 +118,15 @@ def parse_arguments():
     parser.add_argument('--timestretch_prob', type=float, default=0.0, help='probability of applying time stretching to audio')
     parser.add_argument('--timestretch_eps', type=float, default=0.0001, help='small epsilon value to avoid division by zero or log of zero')
     
+    # MixUp: label-based, mixes pairs of samples and their labels
+    parser.add_argument('--mixup_prob', type=float, default=0.0, help='probability of applying mixup to each candidate sample')
+    parser.add_argument('--mixup_alpha', type=float, default=0.4, help='parameter of the beta distribution used to sample the interpolation coefficient')
+    parser.add_argument('--mixup_perc_real_samples', type=float, default=0.5, help='fraction of the batch that is never mixed')
+
+    # SpecMix: label-based, uses the frequency/time masking lengths and number of masks
+    parser.add_argument('--specmix_prob', type=float, default=0.0, help='probability of applying specmix to each candidate sample')
+    parser.add_argument('--specmix_perc_real_samples', type=float, default=0.5, help='fraction of the batch that is never mixed')
+
     # RandAugment: time-frequency domain
     parser.add_argument('--randaugment_prob', type=float, default=0.0, help='probability of applying randaugment to the spectrogram')
     parser.add_argument('--randaugment_n_ops', type=int, default=2, help='number of augmentation operations to apply')

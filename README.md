@@ -91,7 +91,10 @@ Recommended feature extractors for each architecture are listed in `train_kws.sh
   room/device impulse responses (`--rir_prob`, `--dir_prob`).
 - Batch, waveform/spectrogram: white noise, fade, frequency and time masking, time
   stretching, RandAugment, FilterAugment.
-- Features: Freq-MixStyle (`--freqmixstyle_prob`).
+- Label-based, mixing samples and their labels (soft targets): MixUp (`--mixup_prob`) and
+  SpecMix (`--specmix_prob`). A fraction of each batch (`--mixup_perc_real_samples`,
+  `--specmix_perc_real_samples`) is never mixed.
+- Features: Freq-MixStyle (`--freqmixstyle_prob`), applied per (dominant) class.
 
 ## Evaluation
 

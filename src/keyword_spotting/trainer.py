@@ -76,9 +76,9 @@ def train_kws(model, fe, augments, label_based_augments, train_loader, validatio
             # Feature extractor
             x = fe(x)
 
-            # Frequency mix style
+            # Frequency mix style: groups samples by (dominant) class
             if(freq_mix_style):
-                x = freq_mix_style(x, target)
+                x = freq_mix_style(x, target.argmax(1) if target.dim() > 1 else target)
 
             # Model forward: rnn or cnn
             if(net_class == 'rnn'):

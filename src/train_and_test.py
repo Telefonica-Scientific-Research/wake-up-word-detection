@@ -220,8 +220,28 @@ def main():
     data_augment = torch.nn.Sequential(*augments_list)
     data_augment.to(device)
 
-    # Label-based augments: none in this release (identity)
-    label_based_augment = models.TwoInputSequential()
+    # Label-based augments: return soft targets
+    label_based_augment_list = []
+    if (args.mixup_prob > 0.0):
+        label_based_augment_list.append(augments.MixUp(
+            alpha=args.mixup_alpha,
+            p=args.mixup_prob,
+            perc_real_samples=args.mixup_perc_real_samples,
+            num_classes=train_dataset.n_classes
+            ))
+    if (args.specmix_prob > 0.0):
+        label_based_augment_list.append(augments.SpecMix(
+            n_fft=args.augment_nfft,
+            hop_length=args.augment_hop_len,
+            freq_mask_param=args.freqmask_max_len,
+            time_mask_param=args.timemask_max_len,
+            n_freq_masks=args.freqmask_n_masks,
+            n_time_masks=args.timemask_n_masks,
+            p=args.specmix_prob,
+            perc_real_samples=args.specmix_perc_real_samples,
+            num_classes=train_dataset.n_classes
+            ))
+    label_based_augment = models.TwoInputSequential(*label_based_augment_list)
     label_based_augment.to(device)
 
     # Set feature extractor

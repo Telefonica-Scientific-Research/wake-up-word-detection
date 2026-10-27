@@ -177,7 +177,114 @@ class TimeStretching(torch.nn.Module):
 
         return audio
 
-    
+
+def to_soft_labels(labels, num_classes):
+    """Converts class indices [batch] to one-hot targets [batch, num_classes]."""
+    if labels.dim() == 1:
+        return F.one_hot(labels.long(), num_classes).float()
+    return labels.float()
+
+
+def select_mix_indices(batch_size, perc_real_samples, p, device):
+    """
+    Selects the samples of a batch to be mixed: a fraction perc_real_samples of the
+    batch is kept unmodified and each remaining sample is mixed with probability p.
+    """
+    n_candidates = batch_size - int(perc_real_samples * batch_size)
+    candidates = torch.randperm(batch_size, device=device)[:n_candidates]
+    return candidates[torch.rand(n_candidates, device=device) < p]
+
+
+class MixUp(nn.Module):
+    """
+    MixUp (Zhang et al., 2018): replaces samples of the batch by x = lam*x1 + (1-lam)*x2
+    and y = lam*y1 + (1-lam)*y2, with x2 a random sample of the batch and lam ~ Beta(alpha, alpha).
+    Mixing the complex spectrograms gives the same result, as the STFT is linear.
+    Returns the audio batch and soft targets [batch, num_classes].
+    """
+    def __init__(self, alpha=0.4, p=0.0, perc_real_samples=0.5, num_classes=2):
+        super().__init__()
+        self.alpha = alpha
+        self.p = p
+        self.perc_real_samples = perc_real_samples
+        self.num_classes = num_classes
+
+    def forward(self, x, labels):
+        y = to_soft_labels(labels, self.num_classes)
+        mix_idx = select_mix_indices(x.size(0), self.perc_real_samples, self.p, x.device)
+        if mix_idx.numel() == 0:
+            return x, y
+
+        partner_idx = torch.randint(0, x.size(0), (mix_idx.numel(), ), device=x.device)
+        lam = Beta(self.alpha, self.alpha).sample((mix_idx.numel(), )).to(x.device)
+
+        mixed_x = x.clone()
+        lam_x = lam.view(-1, *([1] * (x.dim() - 1)))
+        mixed_x[mix_idx] = lam_x * x[mix_idx] + (1 - lam_x) * x[partner_idx]
+
+        mixed_y = y.clone()
+        mix_idx, partner_idx, lam = mix_idx.to(y.device), partner_idx.to(y.device), lam.to(y.device)
+        mixed_y[mix_idx] = lam.unsqueeze(1) * y[mix_idx] + (1 - lam.unsqueeze(1)) * y[partner_idx]
+        return mixed_x, mixed_y
+
+
+class SpecMix(nn.Module):
+    """
+    SpecMix (Kim et al., 2021): replaces random frequency bands and time segments of the
+    spectrogram of a sample by those of another random sample of the batch. The targets are
+    mixed in proportion to the replaced area.
+    Returns the audio batch and soft targets [batch, num_classes].
+    """
+    def __init__(self, n_fft=400, hop_length=100, freq_mask_param=30, time_mask_param=40,
+                 n_freq_masks=2, n_time_masks=2, p=0.0, perc_real_samples=0.5, num_classes=2):
+        super().__init__()
+        self.n_fft = n_fft
+        self.hop_length = hop_length
+        self.freq_mask_param = freq_mask_param
+        self.time_mask_param = time_mask_param
+        self.n_freq_masks = n_freq_masks
+        self.n_time_masks = n_time_masks
+        self.p = p
+        self.perc_real_samples = perc_real_samples
+        self.num_classes = num_classes
+
+    def get_mask(self, n_freqs, n_frames, device):
+        """Mask with ones in the regions taken from the other sample."""
+        mask = torch.zeros(n_freqs, n_frames, device=device)
+        for _ in range(self.n_freq_masks):
+            width = random.randint(0, min(self.freq_mask_param, n_freqs))
+            start = random.randint(0, n_freqs - width)
+            mask[start:start + width, :] = 1.0
+        for _ in range(self.n_time_masks):
+            width = random.randint(0, min(self.time_mask_param, n_frames))
+            start = random.randint(0, n_frames - width)
+            mask[:, start:start + width] = 1.0
+        return mask
+
+    def forward(self, x, labels):
+        y = to_soft_labels(labels, self.num_classes)
+        mix_idx = select_mix_indices(x.size(0), self.perc_real_samples, self.p, x.device)
+        if mix_idx.numel() == 0:
+            return x, y
+
+        partner_idx = torch.randint(0, x.size(0), (mix_idx.numel(), ), device=x.device)
+        spec = torch.stft(x[mix_idx], self.n_fft, hop_length=self.hop_length, return_complex=True)
+        partner_spec = torch.stft(x[partner_idx], self.n_fft, hop_length=self.hop_length, return_complex=True)
+
+        masks = torch.stack([self.get_mask(spec.shape[1], spec.shape[2], x.device) for _ in range(mix_idx.numel())])
+        spec = spec * (1 - masks) + partner_spec * masks
+
+        mixed_x = x.clone()
+        mixed_x[mix_idx] = torch.istft(spec, self.n_fft, hop_length=self.hop_length, length=x.shape[-1])
+
+        # Proportion of each sample taken from the other one
+        lam = masks.mean(dim=(1, 2)).to(y.device).unsqueeze(1)
+        mixed_y = y.clone()
+        mix_idx, partner_idx = mix_idx.to(y.device), partner_idx.to(y.device)
+        mixed_y[mix_idx] = (1 - lam) * y[mix_idx] + lam * y[partner_idx]
+        return mixed_x, mixed_y
+
+
 class AudioRandAugment(nn.Module):
     """Applies RandAugment-like augmentations to audio after converting it to a spectrogram.
        These augmentations are the same as for images, treating the spectrogram as an image.
@@ -473,7 +580,7 @@ class FreqMixStyle(nn.Module):
             x_mixed = x_normed * sig_mix + mu_mix
 
             v, _ = torch.max(torch.abs(x_mixed), dim=1, keepdim=True)
-            x_mixed = x_mixed / v
+            x_mixed = x_mixed / torch.clamp(v, min=1e-8)
 
             mixed_x[class_idx] = x_mixed
 
