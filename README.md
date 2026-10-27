@@ -4,6 +4,8 @@ PyTorch code to train and evaluate wake-up-word (WuW) / keyword spotting models.
 It includes several RNN, CNN and Transformer-based architectures, a configurable
 audio feature extractor and a set of waveform and spectrogram data augmentations.
 
+Contact: fernando.lopez@telefonica.com
+
 ## Setup
 
 ```bash
