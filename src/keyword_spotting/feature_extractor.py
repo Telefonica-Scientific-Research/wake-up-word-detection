@@ -97,9 +97,6 @@ class FeatureExtractor(torch.nn.Module):
             time_bins = self.__get_time_bins(self.melkwargs['win_length'], self.melkwargs['hop_length']) # 29
             self.output_shape = (self.n_coef, time_bins)
 
-        if(self.transpose):
-            self.output_shape = self.output_shape[::-1]
-
         # SONOPY
         elif (features == 'mfccs_sonopy'):
             self.window_s = 1600
@@ -257,7 +254,10 @@ class FeatureExtractor(torch.nn.Module):
             time_bins = self.__get_time_bins(self.window_s, self.hop_s)
             self.output_shape = (time_bins, self.n_coef)
 
-    def __mfccs_sonopy(self, signal):        
+        if(self.transpose):
+            self.output_shape = self.output_shape[::-1]
+
+    def __mfccs_sonopy(self, signal):
         mfccs = mfcc_spec(signal,
                           self.fs,
                           (self.window_s, self.hop_s),
