@@ -103,6 +103,48 @@ python src/test.py --arc sgru --partition_path partitions/ --version 1 \
     --test_filename test.tsv --specific_group <column_name>
 ```
 
+## Export for TorchScript and Android
+
+`src/export_model.py` bundles the feature extractor, the model and a softmax into a single
+TorchScript module that takes raw audio and returns class scores:
+
+```bash
+python src/export_model.py --experiment_path models/checkpoints/kws_sgru/version_1 --benchmark_runs 100
+```
+
+It writes to `<experiment_path>/deployment/`:
+
+- `<arch>.jit`: TorchScript model, loadable with `torch.jit.load` (Python or C++ LibTorch).
+- `<arch>.ptl`: model for the PyTorch Lite interpreter, used by the PyTorch Android library
+  (`org.pytorch:pytorch_android_lite`).
+- `model_info.json`: input/output shapes, sampling rate and class index.
+
+Inputs are a float tensor `[1, n_samples]` with audio at the training sampling rate
+(e.g. `[1, 24000]` for 1.5 s at 16 kHz). GRU models (`sgru*`) also take and return the
+hidden state `[n_layers, 1, hidden_dim]`, which can be carried between consecutive windows
+in streaming or reset to zeros.
+
+Options:
+
+- `--do_quantization`: dynamic int8 quantization of linear and GRU layers.
+- `--no_optimization`: skip `optimize_for_mobile` for the `.ptl` model. The `.jit` model is never
+  optimized for mobile, as those optimizations target ARM devices and slow down x86 CPUs.
+- `--benchmark_runs N`: CPU forward time of the original and exported models.
+
+The script checks that the exported models give the same scores as the original one and prints
+the maximum difference. Models that cannot be scripted are traced with a fixed-size input.
+
+### Android benchmark
+
+`benchmark_android.sh` measures the speed of a `.ptl` model on a device connected with `adb`.
+It needs the `speed_benchmark_torch` binary (and optionally `load_benchmark_torch`) from the
+PyTorch sources, built for Android with the Lite interpreter and copied to `/data/local/tmp`
+on the device. The input dimensions are printed by `export_model.py`:
+
+```bash
+./benchmark_android.sh models/checkpoints/kws_sgru/version_1/deployment/sgru.ptl "1,24000;1,1,200"
+```
+
 ## Citation
 
 This code is the basis of the following works. If you use it, please cite the relevant ones.
