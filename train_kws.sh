@@ -55,6 +55,10 @@ timestretch_prob=0.0 # Time stretching probability
 randaugment_prob=0.0 # RandAugment probability
 fade_prob=0.0 # Fade probability
 
+# Label-based data augmentation: mixes samples and their labels
+mixup_prob=0.0 # MixUp probability
+specmix_prob=0.0 # SpecMix probability
+
 # Partition: folder with train.tsv, dev.tsv, test.tsv, classes_index.json and partition.json (see README)
 partition=partitions/
 
@@ -132,6 +136,7 @@ do
     --non_speech_prob $non_speech_prob --dir_prob $dir_prob --freqmask_prob $freqmask_prob \
     --timemask_prob $timemask_prob --timestretch_prob $timestretch_prob \
     --randaugment_prob $randaugment_prob --fade_prob $fade_prob \
+    --mixup_prob $mixup_prob --specmix_prob $specmix_prob \
     --augment_nfft $augment_nfft \
     --augment_hop_len $augment_hop --num_workers $num_workers --filteraugment_prob $filteraugment_prob \
     --freqmixstyle_prob $freqmixstyle_prob
