@@ -149,6 +149,11 @@ Options:
 The script checks that the exported models give the same scores as the original one and prints
 the maximum difference. Models that cannot be scripted are traced with a fixed-size input.
 
+### Limitations
+
+- `audiomer-2d`: the scores of the `.ptl` model differ slightly from the original model (about
+  8e-3 in our tests), as `optimize_for_mobile` changes them. Use `--no_optimization` to avoid it.
+
 ### Android benchmark
 
 `benchmark_android.sh` measures the speed of a `.ptl` model on a device connected with `adb`.
