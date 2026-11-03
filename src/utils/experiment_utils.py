@@ -28,8 +28,7 @@ def check_version(architecture_path):
 
 
 def check_path(folder_name):
-    if not os.path.isdir(folder_name):
-        os.mkdir(folder_name)
+    os.makedirs(folder_name, exist_ok=True)
 
 
 def save_scores_and_labels(tsv_path, labels, scores, ids, target_names=None):
