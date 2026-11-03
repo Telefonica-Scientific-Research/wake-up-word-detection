@@ -112,6 +112,12 @@ class Wav2VecBert2(SerializableModule):
             nn.Linear(self.inner_dim, self.n_classes)
         )
 
+    def train(self, mode=True):
+        # The encoder is frozen: it always stays in eval mode (no layerdrop nor dropout)
+        super().train(mode)
+        self.encoder.eval()
+        return self
+
     def forward(self, x):
         # Filterbank features computed by the Hugging Face feature extractor (on CPU)
         device = self.emb_weights.device
