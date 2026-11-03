@@ -279,11 +279,7 @@ def main():
         if os.path.isfile(args.from_checkpoint):
             model.load(args.from_checkpoint)
         else:
-            model.load(os.path.join(
-                args.from_checkpoint,
-                'kws_' + args.arc,
-                model_id + '.pt'
-                ))
+            model.load(os.path.join(args.from_checkpoint, model_id + '.pt'))
     
     # Net class: rnn or cnn
     net_class = 'rnn' if("sgru" in args.arc) else 'cnn'

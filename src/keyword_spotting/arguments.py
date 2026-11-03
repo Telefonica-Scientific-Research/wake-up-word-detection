@@ -35,7 +35,7 @@ def parse_arguments():
     parser.add_argument('--patience', type=int, default=60, help='number of epochs of no loss improvement before stop training')
     
     # Start from checkpoint
-    parser.add_argument('--from_checkpoint', default='', help='checkpoint to start from: a .pt state dict file, or a folder containing kws_<arc>/<arc>.pt')
+    parser.add_argument('--from_checkpoint', default='', help='checkpoint to start from: a .pt state dict file, or an experiment folder containing <arc>.pt, e.g. models/checkpoints/kws_<arc>/version_1')
     
     # GPU
     parser.add_argument('--no_cuda', dest='cuda', action='store_false', help='do not use cuda')
