@@ -12,6 +12,7 @@ Contact: fernando.lopez@telefonica.com
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+pip install -r requirements-ssl.txt  # optional: w2v-bert-2 teacher for knowledge distillation
 ```
 
 The pinned versions were tested with Python 3.10.
@@ -81,7 +82,8 @@ Run `python src/train_and_test.py --help` for all options.
 
 `sgru`, `sgru_max`, `sgru_avg`, `sgru_att`, `resnet8`, `resnet15`, `resnet15-narrow`,
 `cnn_trad_pool2`, `cnn_trad_pool2s`, `cnn_fat2019`, `cnn10`, `lenet`,
-`bcresnet`, `lambda-resnet18`, `conformer`, `audiomer-2d`, `audiomer-l`, `audiomer-s`.
+`bcresnet`, `lambda-resnet18`, `conformer`, `audiomer-2d`, `audiomer-l`, `audiomer-s`,
+and `w2v-bert-2` (teacher for knowledge distillation).
 
 Recommended feature extractors for each architecture are listed in `train_kws.sh`.
 
@@ -95,6 +97,16 @@ Recommended feature extractors for each architecture are listed in `train_kws.sh
   SpecMix (`--specmix_prob`). A fraction of each batch (`--mixup_perc_real_samples`,
   `--specmix_perc_real_samples`) is never mixed.
 - Features: Freq-MixStyle (`--freqmixstyle_prob`), applied per (dominant) class.
+
+### Knowledge distillation
+
+A student model can be trained by distilling the knowledge of a larger teacher, as in
+López et al. (2026) (see [Citation](#citation)). The teacher is e.g. `w2v-bert-2`: a frozen
+[w2v-BERT 2.0](https://huggingface.co/facebook/w2v-bert-2.0) encoder with a trainable
+classification head (`--feature_extractor raw_audio`). Train the teacher like any other model,
+then pass its `<arch>_entire.pt` file with `--teacher_checkpoint` (see also `--kd_temperature`,
+`--kd_ce_weight` and `--from_checkpoint`). The teacher receives the student's augmented raw
+audio, so it must take raw audio as input.
 
 ## Evaluation
 
@@ -136,6 +148,11 @@ Options:
 
 The script checks that the exported models give the same scores as the original one and prints
 the maximum difference. Models that cannot be scripted are traced with a fixed-size input.
+
+### Limitations
+
+- `audiomer-2d`: the scores of the `.ptl` model differ slightly from the original model (about
+  8e-3 in our tests), as `optimize_for_mobile` changes them. Use `--no_optimization` to avoid it.
 
 ### Android benchmark
 

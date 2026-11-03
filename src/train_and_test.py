@@ -15,6 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
 
 import keyword_spotting.models as models
+from keyword_spotting.loss import DistillationLoss
 from keyword_spotting.arguments import parse_arguments
 import keyword_spotting.loader as loader
 from keyword_spotting.feature_extractor import FeatureExtractor
@@ -28,6 +29,10 @@ import datetime
 import shutil
 import json
 import os
+
+
+# Self-supervised models: they need the optional requirements in requirements-ssl.txt
+SSL_ARCHS = ('w2v-bert-2',)
 
 
 def main():
@@ -264,16 +269,17 @@ def main():
     #########################
     
     # Build model
+    if args.arc in SSL_ARCHS:
+        import keyword_spotting.ssl_models # registers the self-supervised models
     model = models.SerializableModule().create(args.arc, fe.output_shape, num_classes=train_dataset.n_classes)
     model = model.to(device)
 
     # Check if start from checkpoint
     if(args.from_checkpoint != ""):
-        model.load(os.path.join(
-            args.from_checkpoint,
-            'kws_' + args.arc,
-            model_id + '.pt'
-            ))
+        if os.path.isfile(args.from_checkpoint):
+            model.load(args.from_checkpoint)
+        else:
+            model.load(os.path.join(args.from_checkpoint, model_id + '.pt'))
     
     # Net class: rnn or cnn
     net_class = 'rnn' if("sgru" in args.arc) else 'cnn'
@@ -283,7 +289,18 @@ def main():
     reporter.report('model_summary', model_summary)
 
     # Loss
-    criterion = torch.nn.CrossEntropyLoss()
+    test_criterion = torch.nn.CrossEntropyLoss()
+    distillation = args.teacher_checkpoint != ""
+    if distillation:
+        print("Knowledge distillation from teacher: " + args.teacher_checkpoint)
+        teacher_model = torch.load(args.teacher_checkpoint, map_location=device)
+        criterion = DistillationLoss(
+            teacher_model,
+            temperature=args.kd_temperature,
+            ce_weight=args.kd_ce_weight
+            ).to(device)
+    else:
+        criterion = test_criterion
 
     model_parameters = filter(lambda p: p.requires_grad, model.parameters())
     
@@ -329,8 +346,8 @@ def main():
         lr_patience=args.lr_patience,
         patience=args.patience,
         net_class=net_class,
-        one_hot=args.one_hot,
-        freq_mix_style=freq_mix_style
+        freq_mix_style=freq_mix_style,
+        distillation=distillation
         )
 
     # Save plot and metrics
@@ -388,11 +405,10 @@ def main():
         kws_model,
         fe,
         test_loader,
-        criterion,
+        test_criterion,
         device,
         args.batch_size,
         net_class=net_class,
-        one_hot=args.one_hot,
         se_model=se_model
     )
 

@@ -24,6 +24,8 @@ seed=2022
 lr=0.001
 lr_patience=40 # step scheduler: like ReduceLROnPlateau
 patience=$(($lr_patience*4))
+optimizer=adam # adam | sgd | rmsprop
+weight_decay=0.0
 
 # Data Augments
 min_snr=-10 # Minimum SNR to combine with background noise
@@ -58,6 +60,13 @@ fade_prob=0.0 # Fade probability
 # Label-based data augmentation: mixes samples and their labels
 mixup_prob=0.0 # MixUp probability
 specmix_prob=0.0 # SpecMix probability
+
+# Knowledge distillation (see README): set teacher_checkpoint to a trained teacher's <arch>_entire.pt
+# file to train the student with the distillation loss, e.g. models/checkpoints/kws_w2v-bert-2/version_1/w2v-bert-2_entire.pt
+teacher_checkpoint="" # empty: no knowledge distillation
+kd_temperature=4 # softmax temperature
+kd_ce_weight=0.2 # weight of the cross-entropy loss (the distillation loss gets 1 - kd_ce_weight)
+from_checkpoint="" # optional: .pt state dict to initialize the model, e.g. a student trained without distillation
 
 # Partition: folder with train.tsv, dev.tsv, test.tsv, classes_index.json and partition.json (see README)
 partition=partitions/
@@ -105,6 +114,8 @@ experiment_description="b_"$batch_size"-e_"$epochs"-s_"$seed"-lr_"$lr"-lrp_"$lr_
 #   | audiomer-l      | raw_audio                     |
 #   |-----------------|-------------------------------|
 #   | audiomer-s      | raw_audio                     |
+#   |-----------------|-------------------------------|
+#   | w2v-bert-2      | raw_audio                     | (teacher for knowledge distillation)
 #   +-----------------+-------------------------------+
 #
 
@@ -139,6 +150,8 @@ do
     --mixup_prob $mixup_prob --specmix_prob $specmix_prob \
     --augment_nfft $augment_nfft \
     --augment_hop_len $augment_hop --num_workers $num_workers --filteraugment_prob $filteraugment_prob \
-    --freqmixstyle_prob $freqmixstyle_prob
+    --freqmixstyle_prob $freqmixstyle_prob --optimizer $optimizer --weight_decay $weight_decay \
+    --teacher_checkpoint "$teacher_checkpoint" --kd_temperature $kd_temperature --kd_ce_weight $kd_ce_weight \
+    --from_checkpoint "$from_checkpoint"
 
 done
