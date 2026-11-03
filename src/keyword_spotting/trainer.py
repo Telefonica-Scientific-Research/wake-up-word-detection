@@ -19,9 +19,13 @@ import matplotlib.pyplot as plt
 
 
 def train_kws(model, fe, augments, label_based_augments, train_loader, validation_loader, optimizer, criterion, device,
-    tensorboard_writer, epochs, batch_size, model_path, lr_patience=20, patience=60, net_class='rnn', one_hot=True, freq_mix_style=None):
+    tensorboard_writer, epochs, batch_size, model_path, lr_patience=20, patience=60, net_class='rnn', freq_mix_style=None,
+    distillation=False):
     """
     Trainer for KWS.
+
+    If distillation is True, the criterion is called as criterion(out, target, teacher_input), where
+    teacher_input is the (augmented) raw audio, before the feature extractor (see loss.DistillationLoss).
     """
 
     # Metrics
@@ -73,6 +77,9 @@ def train_kws(model, fe, augments, label_based_augments, train_loader, validatio
             # Label based data augmentation
             x, target = label_based_augments(x, target)
 
+            # Teacher input for knowledge distillation: raw audio
+            teacher_input = (x.clone(),) if distillation else ()
+
             # Feature extractor
             x = fe(x)
 
@@ -89,7 +96,7 @@ def train_kws(model, fe, augments, label_based_augments, train_loader, validatio
                 out = model(x.to(device).float())
 
             # Backward and optimization
-            loss = criterion(out, target.to(device))
+            loss = criterion(out, target.to(device), *teacher_input)
             loss.backward()
             optimizer.step()
 
@@ -123,6 +130,9 @@ def train_kws(model, fe, augments, label_based_augments, train_loader, validatio
                 # The idea is to pick the model that best matches the real usage conditions
                 x = augments(x)
 
+                # Teacher input for knowledge distillation: raw audio
+                teacher_input = (x.clone(),) if distillation else ()
+
                 # Feature extraction
                 x = fe(x)
 
@@ -135,10 +145,7 @@ def train_kws(model, fe, augments, label_based_augments, train_loader, validatio
                     out = model(x.to(device).float())
                 
                 # Store metrics: loss and accuracy
-                if(one_hot):
-                    loss = criterion(out, target.to(device).long())
-                else:
-                    loss = criterion(out, target.to(device).float().view_as(out))
+                loss = criterion(out, target.to(device).long(), *teacher_input)
                 validation_accuracy += right_predictions(out, target)
                 validation_loss += loss.item()
 
@@ -230,7 +237,7 @@ def train_kws(model, fe, augments, label_based_augments, train_loader, validatio
 
 
 def test_kws(wuw_model, fe, test_loader, criterion, device, batch_size,
-    net_class='rnn', one_hot=False, se_model=None):
+    net_class='rnn', se_model=None):
     
     # Metrics initialization
     test_loss = 0.0
@@ -282,10 +289,7 @@ def test_kws(wuw_model, fe, test_loader, criterion, device, batch_size,
                 out = wuw_model(x.to(device).float())
 
             # Store metrics: loss and accuracy
-            if(one_hot):
-                loss = criterion(out, target.to(device).long())
-            else:
-                loss = criterion(out, target.to(device).float().view_as(out))
+            loss = criterion(out, target.to(device).long())
             test_accuracy += right_predictions(out, target)
             test_loss += loss.item()
 
@@ -300,12 +304,8 @@ def test_kws(wuw_model, fe, test_loader, criterion, device, batch_size,
             except:
                 ids += list(ID)
 
-            if (one_hot):
-                predicted_scores += torch.nn.functional.softmax(out.squeeze(1), 1).tolist()
-                predicted_labels += torch.nn.functional.softmax(out, 1).data.max(1, keepdim=True)[1].squeeze(1).tolist()
-            else:
-                predicted_scores += out.squeeze().tolist()
-                predicted_labels += (out.squeeze() > 0.5).long().tolist()
+            predicted_scores += torch.nn.functional.softmax(out.squeeze(1), 1).tolist()
+            predicted_labels += torch.nn.functional.softmax(out, 1).data.max(1, keepdim=True)[1].squeeze(1).tolist()
 
             # Present intermediate results
             if (counter%n_intermediate_steps == 0):

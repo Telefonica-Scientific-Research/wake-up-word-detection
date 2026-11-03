@@ -35,7 +35,7 @@ def parse_arguments():
     parser.add_argument('--patience', type=int, default=60, help='number of epochs of no loss improvement before stop training')
     
     # Start from checkpoint
-    parser.add_argument('--from_checkpoint', default='', help='path to the folder containing a checkpoint to start')
+    parser.add_argument('--from_checkpoint', default='', help='checkpoint to start from: a .pt state dict file, or a folder containing kws_<arc>/<arc>.pt')
     
     # GPU
     parser.add_argument('--no_cuda', dest='cuda', action='store_false', help='do not use cuda')
@@ -61,7 +61,6 @@ def parse_arguments():
 
     # KWS
     parser.add_argument('--arc', default='sgru', help='network architecture name')
-    parser.add_argument('--no_one_hot', dest='one_hot', action='store_false', help='target format in one hot encoding')
 
     # Arguments to test a concrete version or model
     parser.add_argument('--version', type=int, default=None, help='version to be tested')
@@ -145,6 +144,15 @@ def parse_arguments():
     # FreqMixStyle: normalization
     parser.add_argument('--freqmixstyle_prob', type=float, default=0.0, help='probability of applying freqmixstyle to the spectrogram')
     parser.add_argument('--freqmixstyle_alpha', type=float, default=0.4, help='alpha value for the beta distribution')
+
+    #############################
+    # Knowledge distillation
+    #############################
+
+    # The teacher receives the raw audio, so it can use a different feature extractor than the student
+    parser.add_argument('--teacher_checkpoint', default='', help='path to the <arc>_entire.pt file of a trained teacher model; enables knowledge distillation')
+    parser.add_argument('--kd_temperature', type=float, default=4.0, help='softmax temperature of the distillation loss')
+    parser.add_argument('--kd_ce_weight', type=float, default=0.2, help='weight of the cross-entropy loss; the distillation loss is weighted by 1 - kd_ce_weight')
 
     #############################
     # Evaluation stack

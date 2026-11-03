@@ -100,10 +100,7 @@ def main():
         net_class = 'cnn'
 
     # Classification Loss function
-    if(args.one_hot):
-        criterion = nn.CrossEntropyLoss()
-    else:
-        criterion = nn.BCELoss()
+    criterion = nn.CrossEntropyLoss()
 
     # Set feature extractor
     fe = FeatureExtractor(
@@ -176,7 +173,6 @@ def main():
             device,
             args.batch_size,
             net_class=net_class,
-            one_hot=args.one_hot,
             se_model=se_model
         )
 

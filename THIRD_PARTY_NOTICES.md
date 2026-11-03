@@ -10,3 +10,9 @@ Parts of this repository are adapted from, or follow, the following works:
 | `src/keyword_spotting/models.py`, `src/utils/model_utils.py` | BC-ResNet (`bcresnet`) | Implementation of [Kim et al., 2021](https://arxiv.org/abs/2106.04140) | — |
 | `src/utils/lambda_utils.py` | Lambda layers (`lambda-resnet18`) | Implementation of [Bello, 2021](https://arxiv.org/abs/2102.08602) | — |
 | `src/utils/audiomer2d_utils.py`, `src/utils/model_utils.py` | Audiomer (`audiomer-*`) | Implementation of [Sahu et al., 2021](https://arxiv.org/abs/2109.10994) | — |
+
+## Pre-trained models
+
+| File | Model | Source | License |
+|------|-------|--------|---------|
+| `src/keyword_spotting/ssl_models.py` | w2v-BERT 2.0 encoder (`w2v-bert-2`), downloaded at runtime with Hugging Face `transformers` (Apache-2.0) | [facebook/w2v-bert-2.0](https://huggingface.co/facebook/w2v-bert-2.0) | MIT |
