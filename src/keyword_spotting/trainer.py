@@ -418,13 +418,16 @@ def get_model_summary(model, input_shape, net_class='cnn'):
     input_shape = (1, ) + input_shape
     model_input = torch.randn(input_shape)
 
+    # Stay in the device of the model: by default, torchinfo moves it to the GPU
+    device = next(model.parameters()).device
+
     # Model forward
     if (net_class == 'rnn'):
         hidden_size =  model.init_hidden(1, torch.device('cpu')).data.numpy().shape
         h = torch.randn(hidden_size)
-        info = summary(model, input_data=[model_input, h], verbose=0)
+        info = summary(model, input_data=[model_input, h], verbose=0, device=device)
     else:
-        info = summary(model, input_data=[model_input], verbose=0)
+        info = summary(model, input_data=[model_input], verbose=0, device=device)
     
     # Store metrics
     n_params = info.total_params
